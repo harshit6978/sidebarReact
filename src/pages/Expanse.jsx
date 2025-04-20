@@ -5,6 +5,8 @@ import { Dialog } from 'primereact/dialog';
 import { DeleteIcon, PlusIcon, Trash2Icon, PencilIcon } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
 import { getAuth } from 'firebase/auth';
+import 'primereact/resources/themes/lara-light-cyan/theme.css';
+
 
 const Expense = () => {
     const [budgets, setBudgets] = useState([]);

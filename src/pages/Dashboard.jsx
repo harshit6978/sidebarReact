@@ -104,7 +104,7 @@ const Dashboard = () => {
       {/* Budget Summary Section */}
       <div className="flex justify-between mb-6">
         {/* Total Budget Card */}
-        <Card className="flex-1 mx-2 bg-blue-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105">
+        <div className="flex-1 mx-2 bg-blue-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105">
           <div className="flex flex-row items-center justify-between pb-2">
             <h1 className="text-sm font-medium text-blue-600">Total Budget</h1>
             <div className="h-8 w-8 bg-blue-600 rounded-full flex items-center justify-center">
@@ -114,10 +114,10 @@ const Dashboard = () => {
           <div>
             <div className="text-2xl font-bold text-blue-800">₹{totalBudget}</div>
           </div>
-        </Card>
+        </div>
 
-        {/* Total Spend Card */}
-        <Card className="flex-1 mx-2 bg-green-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105">
+        {/* Total Spend div */}
+        <div className="flex-1 mx-2 bg-green-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105">
           <div className="flex flex-row items-center justify-between pb-2">
             <h1 className="text-sm font-medium text-green-600">Total Spend</h1>
             <div className="h-8 w-8 bg-green-600 rounded-full flex items-center justify-center">
@@ -127,10 +127,10 @@ const Dashboard = () => {
           <div>
             <div className="text-2xl font-bold text-green-800">₹{totalSpent}</div>
           </div>
-        </Card>
+        </div>
 
-        {/* Remaining Amount Card */}
-        <Card className="flex-1 mx-2 bg-red-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105">
+        {/* Remaining Amount div */}
+        <div className="flex-1 mx-2 bg-red-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105">
           <div className="flex flex-row items-center justify-between pb-2">
             <h1 className="text-sm font-medium text-red-600">Remaining Amount</h1>
             <div className="h-8 w-8 bg-red-600 rounded-full flex items-center justify-center">
@@ -140,10 +140,10 @@ const Dashboard = () => {
           <div>
             <div className="text-2xl font-bold text-red-800">₹{remainingAmount}</div>
           </div>
-        </Card>
+        </div>
 
-        {/* Number of Budgets Card */}
-        <Card className="flex-1 mx-2 bg-yellow-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105">
+        {/* Number of Budgets div */}
+        <div className="flex-1 mx-2 bg-yellow-100 p-4 rounded-lg shadow-md hover:shadow-lg transition-transform transform hover:scale-105">
           <div className="flex flex-row items-center justify-between pb-2">
             <h1 className="text-sm font-medium text-yellow-600">No. Of Budgets</h1>
             <div className="h-8 w-8 bg-yellow-600 rounded-full flex items-center justify-center">
@@ -153,18 +153,18 @@ const Dashboard = () => {
           <div>
             <div className="text-2xl font-bold text-yellow-800">{numberOfBudgets}</div>
           </div>
-        </Card>
+        </div>
       </div>
 
       {/* Chart Section */}
-    <Card className="w-[calc(50%-16px)]  mb-8"> {/* Chart width equal to two cards */}
+    <div className="w-[calc(50%-16px)]  mb-8"> {/* Chart width equal to two divs */}
         <div>
           <h3 className="text-lg font-semibold">Activity</h3>
         </div>
         <div className="h-[400px] border border-gray-400 rounded-lg p-4">
           <Chart type="bar" data={chartData} options={chartOptions} />
         </div>
-      </Card>
+      </div>
     </div>
   );
 };
