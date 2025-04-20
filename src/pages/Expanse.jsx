@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
 import { db } from '../firebase';
-import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc } from 'firebase/firestore';
+import { collection, addDoc, getDocs, deleteDoc, doc, updateDoc, getDoc, query, where } from 'firebase/firestore';
 import { Dialog } from 'primereact/dialog';
 import { DeleteIcon, PlusIcon, Trash2Icon } from 'lucide-react';
 import { toast, ToastContainer } from 'react-toastify';
+import { getAuth } from 'firebase/auth';
 
 const Expense = () => {
     const [budgets, setBudgets] = useState([]);
@@ -14,25 +15,34 @@ const Expense = () => {
     const [icon, setIcon] = useState('');
     const [total, setTotal] = useState('');
     const [color, setColor] = useState('bg-gray-500');
-
+    const [user, setUser] = useState(null);
     const [expenseName, setExpenseName] = useState('');
     const [expenseAmount, setExpenseAmount] = useState('');
     const [expenses, setExpenses] = useState([]);
     const [expenseDate, setExpenseDate] = useState("");
+    const auth = getAuth();
+    
 
 
     // Fetch budgets
     useEffect(() => {
         fetchBudgets();
     }, []);
+    
 
     const fetchBudgets = async () => {
-        const querySnapshot = await getDocs(collection(db, 'budgets'));
-        const loadedBudgets = querySnapshot.docs.map(doc => ({
-            id: doc.id,
-            ...doc.data(),
-        }));
-        setBudgets(loadedBudgets);
+        try {
+            const budgetsCollectionRef = collection(db, 'budgets');
+            const q = query(budgetsCollectionRef, where("userId", "==", auth.currentUser.uid)); // Filter by user ID
+            const querySnapshot = await getDocs(q);
+            const loadedBudgets = querySnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            setBudgets(loadedBudgets);
+        } catch (error) {
+            toast.error('Error fetching budgets:', error);
+        }
     };
 
     const handleCreateNewBudget = async () => {
@@ -40,81 +50,94 @@ const Expense = () => {
             toast.info("Please enter a category.!");
             return;
         }
-
+    
         const newBudget = {
             category,
             icon,
             spent: 0,
             total: parseFloat(total),
             color,
+            userId: auth.currentUser.uid, // Add the logged-in user's UID
         };
-
+    
         try {
             const budgetsCollectionRef = collection(db, 'budgets');
             await addDoc(budgetsCollectionRef, newBudget);
-            fetchBudgets();
+            fetchBudgets(); // Refresh budgets after adding
             setCategory('');
             setIcon('');
             setTotal(100);
             setColor('bg-gray-500');
             setActiveBudgetDialog(false);
-            toast.success('Budget Added Successfully')
+            toast.success('Budget Added Successfully');
         } catch (error) {
-            console.error('Error adding budget:', error);
+            toast.error('Error adding budget:', error);
         }
     };
+    
 
     const handleRemoveBudget = async (id) => {
         try {
             const budgetRef = doc(db, 'budgets', id);
-            await deleteDoc(budgetRef);
-            setBudgets((prevBudgets) => prevBudgets.filter((budget) => budget.id !== id));
-            toast.success('Budget Delete Successfully')
+            const budgetSnapshot = await getDoc(budgetRef);
+    
+            // Check if the budget belongs to the logged-in user
+            if (budgetSnapshot.exists() && budgetSnapshot.data().userId === auth.currentUser.uid) {
+                await deleteDoc(budgetRef);
+                setBudgets((prevBudgets) => prevBudgets.filter((budget) => budget.id !== id));
+                toast.success('Budget Deleted Successfully');
+            } else {
+                toast.error('You are not authorized to delete this budget.');
+            }
         } catch (error) {
-            toast.error('Error removing budget:', error)
+            console.error('Error removing budget:', error);
+            toast.error('Error removing budget. Please try again.');
         }
     };
+    
 
     const handleClickBudget = async (budget) => {
         setActiveBudget(budget);
         await fetchExpenses(budget.id);
     };
-
     const fetchExpenses = async (budgetId) => {
-        const expensesSnapshot = await getDocs(collection(db, 'budgets', budgetId, 'expenses'));
-        const loadedExpenses = expensesSnapshot.docs.map(doc => doc.data());
-        setExpenses(loadedExpenses);
+        try {
+            const expensesRef = collection(db, 'budgets', budgetId, 'expenses');
+            const q = query(expensesRef, where("userId", "==", auth.currentUser.uid)); // Filter by user ID
+            const expensesSnapshot = await getDocs(q);
+            const loadedExpenses = expensesSnapshot.docs.map(doc => ({
+                id: doc.id,
+                ...doc.data(),
+            }));
+            setExpenses(loadedExpenses);
+        } catch (error) {
+            toast.error('Error fetching expenses:', error);
+        }
     };
+    
 
     const handleAddExpense = async () => {
         if (!expenseName.trim() || !expenseAmount) {
             toast.info("Please fill in both fields.");
             return;
         }
-
-        // const newExpense = {
-        //     id:,
-        //     name: expenseName,
-        //     amount: parseFloat(expenseAmount),
-        //     date: expenseDate ? expenseDate : new Date().toISOString(),
-        // };
-
+        
         try {
             const expensesRef = collection(db, 'budgets', activeBudget.id, 'expenses');
             const expenseDocRef = await addDoc(expensesRef, {
                 name: expenseName,
                 amount: parseFloat(expenseAmount),
                 date: expenseDate ? expenseDate : new Date().toISOString(),
+                userId: auth.currentUser.uid, // Store the user's ID
             });
     
             const newExpense = {
-                id: expenseDocRef.id, // Use the auto-generated document ID
+                id: expenseDocRef.id,
                 name: expenseName,
                 amount: parseFloat(expenseAmount),
                 date: expenseDate ? expenseDate : new Date().toISOString(),
             };
     
-            // Update the "spent" field in the corresponding budget
             const updatedSpent = activeBudget.spent + newExpense.amount;
             const budgetRef = doc(db, 'budgets', activeBudget.id);
             await updateDoc(budgetRef, { spent: updatedSpent });
@@ -122,44 +145,56 @@ const Expense = () => {
             setActiveBudget(prev => ({ ...prev, spent: updatedSpent }));
             setExpenseName('');
             setExpenseAmount('');
-            setExpenseDate('')
+            setExpenseDate('');
             fetchBudgets();
-            toast.success('Expense Added Successfully')
+            toast.success('Expense Added Successfully');
         } catch (error) {
             toast.error('Error adding expense:', error);
         }
     };
+    
+
 
     const handleDeleteExpense = async (expenseId) => {        
         const confirmDelete = window.confirm("Are you sure you want to delete this expense?"); 
-        if(confirmDelete){
+        if (confirmDelete) {
             try {
-                await deleteDoc(doc(db, "budgets", activeBudget.id, "expenses", expenseId));
-                const expensesRef = collection(db, "budgets", activeBudget.id, "expenses");
-                const querySnapshot = await getDocs(expensesRef);
-                const remainingExpenses = querySnapshot.docs.map((doc) => ({
-                    id: doc.id,
-                    ...doc.data(),
-                }));
-                const updatedSpent = remainingExpenses.reduce((total, expense) => total + expense.amount, 0);
-
-                // Update the budget's "spent" field in Firestore
-                const budgetRef = doc(db, "budgets", activeBudget.id);
-                await updateDoc(budgetRef, { spent: updatedSpent });
-        
-                // Update states to reflect changes
-                setExpenses(remainingExpenses); // Update local expenses state
-                setActiveBudget((prev) => ({ ...prev, spent: updatedSpent })); 
-                setExpenses((prev) => prev.filter((expense) => expense.id !== expenseId));
-                toast.success("Expense deleted successfully!");
+                const expenseRef = doc(db, "budgets", activeBudget.id, "expenses", expenseId);
+                const expenseSnapshot = await getDoc(expenseRef);
+    
+                // Check if the expense belongs to the logged-in user
+                if (expenseSnapshot.exists() && expenseSnapshot.data().userId === auth.currentUser.uid) {
+                    await deleteDoc(expenseRef);
+    
+                    const expensesRef = collection(db, "budgets", activeBudget.id, "expenses");
+                    const q = query(expensesRef, where("userId", "==", auth.currentUser.uid)); // Filter by user ID
+                    const querySnapshot = await getDocs(q);
+                    const remainingExpenses = querySnapshot.docs.map((doc) => ({
+                        id: doc.id,
+                        ...doc.data(),
+                    }));
+                    const updatedSpent = remainingExpenses.reduce((total, expense) => total + expense.amount, 0);
+    
+                    // Update the budget's "spent" field in Firestore
+                    const budgetRef = doc(db, "budgets", activeBudget.id);
+                    await updateDoc(budgetRef, { spent: updatedSpent });
+            
+                    // Update states to reflect changes
+                    setExpenses(remainingExpenses); // Update local expenses state
+                    setActiveBudget((prev) => ({ ...prev, spent: updatedSpent })); 
+                    toast.success("Expense deleted successfully!");
+                } else {
+                    toast.error("You are not authorized to delete this expense.");
+                }
             } catch (error) {
-                console.error("Error deleting expense:", error);
+                toast.error("Error deleting expense:", error);
                 toast.error("Failed to delete expense. Please try again.");
             }
-        } else{
-            return
+        } else {
+            return;
         }      
     };
+    
     
     return (
         <>

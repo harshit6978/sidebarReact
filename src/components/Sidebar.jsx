@@ -1,20 +1,36 @@
-import { ChevronFirst, ChevronLast, MoreVertical } from "lucide-react"
+import { ChevronFirst, ChevronLast, LogOutIcon, MoreVertical } from "lucide-react"
 import logo from "../assets/logo.png"
 import profile from "../assets/profile.png"
 import { createContext, useContext, useState } from "react"
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
+import { getAuth, signOut } from "firebase/auth";
+import { toast, ToastContainer } from "react-toastify";
+
 
 const SidebarContext = createContext();
 
 export default function Sidebar({ children }) {
     const [expanded, setExpanded] = useState(true)
+    const navigate = useNavigate();
+    const auth = getAuth();
+
+    const handleLogout = async () => {
+        try {
+            await signOut(auth);
+            toast.success("You have been logged out.")
+            navigate("/"); // Redirect to login page
+        } catch (error) {
+            alert("Error logging out: " + error.message);
+        }
+    };
     return (
         <>
             <aside className="h-screen">
+                <ToastContainer />
                 <nav className="h-full flex flex-col bg-white border-r shadow-sm">
                     <div className="p-4 pb-2 flex justify-between items-center">
                         <img src='https://cdn-icons-png.flaticon.com/512/8910/8910710.png' className={`overflow-hidden transition-all ${expanded ? "w-16" : "w-0"}`} />
-                        <p className={`${expanded?'text-base font-extrabold text-amber-900 ' :'hidden'}`}>Expense Manager</p>
+                        <p className={`${expanded ? 'text-base font-extrabold text-amber-900 ' : 'hidden'}`}>Expense Manager</p>
                         <button onClick={() => setExpanded((curr) => !curr)} className="p-1.5 rounded-lg bg-gray-50 hover:bg-gray-100">
                             {expanded ? <ChevronFirst /> : <ChevronLast />}
                         </button>
@@ -26,6 +42,10 @@ export default function Sidebar({ children }) {
                             {children}
                         </ul>
                     </SidebarContext.Provider>
+                    <div className="border-t flex p-3 items-center cursor-pointer hover:bg-gray-100" onClick={handleLogout}>
+                        <LogOutIcon size={20} className="text-gray-600" />
+                        <span className={`overflow-hidden transition-all ${expanded ? "ml-3" : "w-0"}`}>Log Out</span>
+                    </div>
                     {/* <div className="border-t flex p-3">
                         <img src={profile} className="w-10 h-10 rounded-md" />
                         <div className={`flex justify-between items-center overflow-hidden transition-all ${expanded ? "w-52 ml-3" : "w-0"} `}>
